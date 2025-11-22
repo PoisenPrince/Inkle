@@ -1,17 +1,14 @@
-# React + TypeScript table starter
+# React + TypeScript table UI
 
-This repo scaffolds a Vite-powered React + TypeScript project that recreates the provided Figma table using [`@tanstack/react-table`](https://tanstack.com/table/latest). The table pulls rows from [`https://685013d7e7c42cfd17974a33.mockapi.io/taxes`](https://685013d7e7c42cfd17974a33.mockapi.io/taxes) with a local fallback so it still renders when offline.
+A Vite-powered React + TypeScript project that recreates the provided Figma table using [`@tanstack/react-table`](https://tanstack.com/table/latest). The experience includes live data loading, editable rows, animated country filtering, pagination, and reusable UI primitives that mirror the mock.
 
-## What you get
-- React 18 with TypeScript and Vite dev server
-- `@tanstack/react-table` wired to live data from the mock API plus offline fallback rows
-- Minimal styling that mirrors the Figma badges, spacing, and edit affordance
-- Ready-to-extend layout shell and feature folder for the table
-
-## Recommended libraries
-- [`@tanstack/react-table`](https://tanstack.com/table/latest) for headless table logic
-- [`react-icons`](https://react-icons.github.io/react-icons) for lightweight SVG icons
-- [`clsx`](https://github.com/lukeed/clsx) for conditional class names
+## Features
+- Headless table powered by TanStack Table with entity, gender, request date, country, and edit columns
+- Live rows from [`https://685013d7e7c42cfd17974a33.mockapi.io/taxes`](https://685013d7e7c42cfd17974a33.mockapi.io/taxes) with offline fallbacks
+- Country multi-select filter fed by [`https://685013d7e7c42cfd17974a33.mockapi.io/countries`](https://685013d7e7c42cfd17974a33.mockapi.io/countries)
+- Edit modal with name + country fields, PUT saves, and table refresh
+- Loading/error states, shimmer skeletons, pagination controls, and subtle modal/popover animations
+- Reusable `Button` and `Input` primitives that match the Figma spacing and states
 
 ## Folder structure
 ```
@@ -26,13 +23,17 @@ Inkle/
     ├── index.css
     ├── index.tsx
     ├── components/
-    │   └── Layout.tsx
+    │   ├── Layout.tsx
+    │   └── ui/
+    │       ├── Button.tsx
+    │       └── Input.tsx
     └── features/
         └── customers/
+            ├── EditRequestModal.tsx
             └── RequestsTable.tsx
 ```
 
-## Setup commands
+## Setup
 ```bash
 # Install dependencies
 npm install
@@ -40,14 +41,13 @@ npm install
 # Start the dev server
 npm run dev
 
-# Create a production build
+# Type-check and build for production
 npm run build
 
-# Preview the production build locally
+# Preview the production build
 npm run preview
 ```
 
-## Next steps
-- Wire the edit icon to a modal or dedicated route for updating a request.
-- Extend the schema/columns if the upstream API adds more fields.
-- Extract shared UI primitives (badges, buttons, popovers) if you plan to reuse them elsewhere.
+## Notes
+- The table boots with fallback rows if the mock APIs are unreachable.
+- Spacing, typography, colors, and shadows are tuned to closely mirror the Figma reference.
