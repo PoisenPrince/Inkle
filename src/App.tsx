@@ -7,6 +7,10 @@ import RequestsTable, { RequestsTableHandle } from './features/customers/Request
 function App() {
   const tableRef = useRef<RequestsTableHandle>(null);
 
+import Layout from './components/Layout';
+import RequestsTable from './features/customers/RequestsTable';
+
+function App() {
   return (
     <Layout
       title="Customers"
@@ -35,6 +39,8 @@ function App() {
       }
     >
       <RequestsTable ref={tableRef} />
+    >
+      <RequestsTable />
     </Layout>
   );
 }

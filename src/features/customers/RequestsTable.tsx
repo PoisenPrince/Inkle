@@ -18,6 +18,11 @@ export type RequestsTableHandle = {
   refresh: () => void;
   openNewCustomer: () => void;
 };
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import { HiOutlineFunnel, HiOutlinePencil, HiOutlineRefresh } from 'react-icons/hi';
+import { clsx } from 'clsx';
+import Button from '../../components/ui/Button';
+import EditRequestModal from './EditRequestModal';
 
 export type RequestRow = {
   id: string;
@@ -87,6 +92,10 @@ const GenderBadge = ({ gender }: { gender: string }) => {
 const RequestsTable = forwardRef<RequestsTableHandle>((_, ref) => {
   const [rows, setRows] = useState<RequestRow[]>(fallbackRows);
   const [loading, setLoading] = useState(true);
+const RequestsTable = () => {
+  const [rows, setRows] = useState<RequestRow[]>(fallbackRows);
+  const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [countries, setCountries] = useState<string[]>(() => [
     ...new Set(fallbackRows.map((row) => row.country))
@@ -102,6 +111,12 @@ const RequestsTable = forwardRef<RequestsTableHandle>((_, ref) => {
 
   const loadRequests = useCallback(async ({ silent }: { silent?: boolean } = { silent: false }) => {
     if (!silent) {
+  const [pagination, setPagination] = useState({ pageIndex: 0, pageSize: 6 });
+
+  const loadRequests = useCallback(async ({ silent }: { silent?: boolean } = { silent: false }) => {
+    if (silent) {
+      setRefreshing(true);
+    } else {
       setLoading(true);
     }
 
@@ -122,6 +137,9 @@ const RequestsTable = forwardRef<RequestsTableHandle>((_, ref) => {
       setRows(fallbackRows);
     } finally {
       if (!silent) {
+      if (silent) {
+        setRefreshing(false);
+      } else {
         setLoading(false);
       }
     }
@@ -430,6 +448,16 @@ const RequestsTable = forwardRef<RequestsTableHandle>((_, ref) => {
               </span>
             )}
           </div>
+          <Button
+            type="button"
+            variant="secondary"
+            onClick={() => loadRequests({ silent: true })}
+            loading={refreshing}
+            size="sm"
+          >
+            <HiOutlineRefresh size={18} />
+            <span className="btn-text">Refresh</span>
+          </Button>
         </div>
       </div>
       {error && (
@@ -522,5 +550,8 @@ const RequestsTable = forwardRef<RequestsTableHandle>((_, ref) => {
 });
 
 RequestsTable.displayName = 'RequestsTable';
+    </div>
+  );
+};
 
 export default RequestsTable;
