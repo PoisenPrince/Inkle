@@ -7,9 +7,21 @@ interface EditRequestModalProps {
   row: RequestRow | null;
   countries: string[];
   onClose: () => void;
+  onSave: (
+    row: RequestRow,
+    updates: { name: string; country: string }
+  ) => Promise<void> | void;
+  saving?: boolean;
 }
 
-const EditRequestModal = ({ open, row, countries, onClose }: EditRequestModalProps) => {
+const EditRequestModal = ({
+  open,
+  row,
+  countries,
+  onClose,
+  onSave,
+  saving = false
+}: EditRequestModalProps) => {
   const [name, setName] = useState(row?.name ?? '');
   const [country, setCountry] = useState(row?.country ?? '');
 
@@ -19,16 +31,22 @@ const EditRequestModal = ({ open, row, countries, onClose }: EditRequestModalPro
   }, [row, open]);
 
   const sortedCountries = useMemo(() => {
-    const cleaned = [...countries].filter(Boolean);
-    if (!cleaned.length && row?.country) return [row.country];
-    return cleaned.sort((a, b) => a.localeCompare(b));
+    const cleaned = [...countries, row?.country]
+      .filter(Boolean)
+      .map((value) => value!.trim())
+      .filter(Boolean);
+
+    return [...new Set(cleaned)].sort((a, b) => a.localeCompare(b));
   }, [countries, row?.country]);
 
   if (!open || !row) return null;
 
-  const submit = (event: FormEvent) => {
+  const submit = async (event: FormEvent) => {
     event.preventDefault();
-    onClose();
+    const trimmedName = name.trim();
+    if (!trimmedName || !country) return;
+
+    await onSave(row, { name: trimmedName, country });
   };
 
   return (
@@ -59,6 +77,7 @@ const EditRequestModal = ({ open, row, countries, onClose }: EditRequestModalPro
               value={name}
               onChange={(event) => setName(event.target.value)}
               placeholder="Enter name"
+              disabled={saving}
             />
           </div>
 
@@ -69,6 +88,7 @@ const EditRequestModal = ({ open, row, countries, onClose }: EditRequestModalPro
               name="country"
               value={country}
               onChange={(event) => setCountry(event.target.value)}
+              disabled={saving}
             >
               {sortedCountries.map((option) => (
                 <option key={option} value={option}>
@@ -79,11 +99,11 @@ const EditRequestModal = ({ open, row, countries, onClose }: EditRequestModalPro
           </div>
 
           <div className="modal-footer">
-            <button type="button" className="ghost" onClick={onClose}>
+            <button type="button" className="ghost" onClick={onClose} disabled={saving}>
               Cancel
             </button>
-            <button type="submit" className="primary">
-              Save changes
+            <button type="submit" className="primary" disabled={saving}>
+              {saving ? 'Saving…' : 'Save changes'}
             </button>
           </div>
         </form>

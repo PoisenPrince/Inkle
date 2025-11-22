@@ -6,7 +6,7 @@ import {
   getFilteredRowModel,
   useReactTable
 } from '@tanstack/react-table';
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { HiOutlinePencil } from 'react-icons/hi';
 import { clsx } from 'clsx';
 import EditRequestModal from './EditRequestModal';
@@ -86,40 +86,34 @@ const RequestsTable = () => {
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
   const [showCountryFilter, setShowCountryFilter] = useState(false);
   const [editingRow, setEditingRow] = useState<RequestRow | null>(null);
+  const [saving, setSaving] = useState(false);
+
+  const loadRequests = useCallback(async () => {
+    setLoading(true);
+
+    try {
+      const response = await fetch('https://685013d7e7c42cfd17974a33.mockapi.io/taxes');
+
+      if (!response.ok) {
+        throw new Error(`Request failed: ${response.status}`);
+      }
+
+      const data: ApiRow[] = await response.json();
+      const normalized = data.map(normalizeRow);
+      setRows(normalized);
+      setError(null);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Unknown error';
+      setError(message);
+      setRows(fallbackRows);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
 
   useEffect(() => {
-    let active = true;
-
-    const load = async () => {
-      try {
-        const response = await fetch('https://685013d7e7c42cfd17974a33.mockapi.io/taxes');
-
-        if (!response.ok) {
-          throw new Error(`Request failed: ${response.status}`);
-        }
-
-        const data: ApiRow[] = await response.json();
-        if (!active) return;
-
-        const normalized = data.map(normalizeRow);
-        setRows(normalized);
-        setError(null);
-      } catch (err) {
-        if (!active) return;
-        const message = err instanceof Error ? err.message : 'Unknown error';
-        setError(message);
-        setRows(fallbackRows);
-      } finally {
-        if (active) setLoading(false);
-      }
-    };
-
-    load();
-
-    return () => {
-      active = false;
-    };
-  }, []);
+    loadRequests();
+  }, [loadRequests]);
 
   useEffect(() => {
     let active = true;
@@ -223,6 +217,44 @@ const RequestsTable = () => {
 
   const clearCountryFilter = () => {
     table.getColumn('country')?.setFilterValue([]);
+  };
+
+  const handleSave = async (
+    row: RequestRow,
+    updates: { name: string; country: string }
+  ) => {
+    setSaving(true);
+
+    const payload = {
+      ...row,
+      name: updates.name,
+      country: updates.country
+    };
+
+    try {
+      const response = await fetch(
+        `https://685013d7e7c42cfd17974a33.mockapi.io/taxes/${row.id}`,
+        {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify(payload)
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error('Failed to update request');
+      }
+
+      setEditingRow(null);
+      await loadRequests();
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Failed to update request';
+      setError(message);
+    } finally {
+      setSaving(false);
+    }
   };
 
   const content = loading ? (
@@ -331,7 +363,9 @@ const RequestsTable = () => {
         open={Boolean(editingRow)}
         row={editingRow}
         countries={countries}
+        saving={saving}
         onClose={() => setEditingRow(null)}
+        onSave={handleSave}
       />
     </div>
   );
