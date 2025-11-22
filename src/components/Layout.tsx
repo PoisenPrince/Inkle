@@ -1,4 +1,5 @@
 import { ReactNode } from 'react';
+import Button from './ui/Button';
 
 interface LayoutProps {
   title: string;
@@ -15,7 +16,7 @@ const Layout = ({ title, subtitle, children }: LayoutProps) => {
           <h1>{title}</h1>
           {subtitle && <p className="subtitle">{subtitle}</p>}
         </div>
-        <button className="primary">New customer</button>
+        <Button variant="primary">New customer</Button>
       </header>
       <main className="app-main">{children}</main>
     </div>

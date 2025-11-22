@@ -4,11 +4,13 @@ import {
   flexRender,
   getCoreRowModel,
   getFilteredRowModel,
+  getPaginationRowModel,
   useReactTable
 } from '@tanstack/react-table';
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { HiOutlineFunnel, HiOutlinePencil } from 'react-icons/hi';
+import { HiOutlineFunnel, HiOutlinePencil, HiOutlineRefresh } from 'react-icons/hi';
 import { clsx } from 'clsx';
+import Button from '../../components/ui/Button';
 import EditRequestModal from './EditRequestModal';
 
 export type RequestRow = {
@@ -79,6 +81,7 @@ const GenderBadge = ({ gender }: { gender: string }) => {
 const RequestsTable = () => {
   const [rows, setRows] = useState<RequestRow[]>(fallbackRows);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [countries, setCountries] = useState<string[]>(() => [
     ...new Set(fallbackRows.map((row) => row.country))
@@ -87,9 +90,14 @@ const RequestsTable = () => {
   const [showCountryFilter, setShowCountryFilter] = useState(false);
   const [editingRow, setEditingRow] = useState<RequestRow | null>(null);
   const [saving, setSaving] = useState(false);
+  const [pagination, setPagination] = useState({ pageIndex: 0, pageSize: 6 });
 
-  const loadRequests = useCallback(async () => {
-    setLoading(true);
+  const loadRequests = useCallback(async ({ silent }: { silent?: boolean } = { silent: false }) => {
+    if (silent) {
+      setRefreshing(true);
+    } else {
+      setLoading(true);
+    }
 
     try {
       const response = await fetch('https://685013d7e7c42cfd17974a33.mockapi.io/taxes');
@@ -107,7 +115,11 @@ const RequestsTable = () => {
       setError(message);
       setRows(fallbackRows);
     } finally {
-      setLoading(false);
+      if (silent) {
+        setRefreshing(false);
+      } else {
+        setLoading(false);
+      }
     }
   }, []);
 
@@ -148,6 +160,10 @@ const RequestsTable = () => {
     };
   }, []);
 
+  useEffect(() => {
+    setPagination((prev) => ({ ...prev, pageIndex: 0 }));
+  }, [rows, columnFilters]);
+
   const columns = useMemo<ColumnDef<RequestRow>[]>(
     () => [
       {
@@ -179,29 +195,33 @@ const RequestsTable = () => {
         id: 'edit',
         header: '',
         cell: (info) => (
-          <button
-            className="icon-button"
+          <Button
+            variant="icon"
             aria-label="Edit"
             onClick={() => setEditingRow(info.row.original)}
+            size="sm"
           >
             <HiOutlinePencil size={18} />
-          </button>
+          </Button>
         ),
         meta: { align: 'right' }
       }
     ],
-    [setEditingRow]
+    []
   );
 
   const table = useReactTable({
     data: rows,
     columns,
     state: {
-      columnFilters
+      columnFilters,
+      pagination
     },
     onColumnFiltersChange: setColumnFilters,
+    onPaginationChange: setPagination,
     getCoreRowModel: getCoreRowModel(),
-    getFilteredRowModel: getFilteredRowModel()
+    getFilteredRowModel: getFilteredRowModel(),
+    getPaginationRowModel: getPaginationRowModel()
   });
 
   const countryFilter =
@@ -248,7 +268,7 @@ const RequestsTable = () => {
       }
 
       setEditingRow(null);
-      await loadRequests();
+      await loadRequests({ silent: true });
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Failed to update request';
       setError(message);
@@ -257,8 +277,13 @@ const RequestsTable = () => {
     }
   };
 
+  const visibleRows = table.getRowModel().rows;
+  const totalRows = table.getFilteredRowModel().rows.length;
+  const start = totalRows === 0 ? 0 : pagination.pageIndex * pagination.pageSize + 1;
+  const end = totalRows === 0 ? 0 : Math.min(start + pagination.pageSize - 1, totalRows);
+
   const content = loading ? (
-    <tbody>
+    <tbody aria-busy="true">
       {[...Array(4)].map((_, index) => (
         <tr key={index} className="skeleton-row">
           {columns.map((column) => (
@@ -269,9 +294,17 @@ const RequestsTable = () => {
         </tr>
       ))}
     </tbody>
+  ) : visibleRows.length === 0 ? (
+    <tbody>
+      <tr>
+        <td colSpan={columns.length} className="empty">
+          No requests match this view.
+        </td>
+      </tr>
+    </tbody>
   ) : (
     <tbody>
-      {table.getRowModel().rows.map((row) => (
+      {visibleRows.map((row) => (
         <tr key={row.id}>
           {row.getVisibleCells().map((cell) => (
             <td
@@ -297,19 +330,24 @@ const RequestsTable = () => {
           <p className="table-subtitle">Latest customer tax submissions</p>
         </div>
         <div className="toolbar-actions">
-          <div className="filter">
-            <button
+          <div className="filter" data-open={showCountryFilter}>
+            <Button
               type="button"
-              className="icon-button"
+              variant="icon"
               aria-label="Filter by country"
               aria-haspopup="listbox"
               aria-expanded={showCountryFilter}
               onClick={() => setShowCountryFilter((prev) => !prev)}
+              size="sm"
             >
               <HiOutlineFunnel size={18} />
-            </button>
+            </Button>
             {showCountryFilter && (
-              <div className="popover" role="listbox" aria-label="Filter by country">
+              <div
+                className="popover animate-in"
+                role="listbox"
+                aria-label="Filter by country"
+              >
                 <div className="popover-title">Country</div>
                 <div className="divider" />
                 <ul className="popover-list">
@@ -327,15 +365,37 @@ const RequestsTable = () => {
                   ))}
                 </ul>
                 <div className="divider" />
-                <button className="primary clear-button" onClick={clearCountryFilter}>
+                <Button variant="primary" className="clear-button" onClick={clearCountryFilter}>
                   Clear selection
-                </button>
+                </Button>
               </div>
             )}
           </div>
-          {error && <span className="error-pill">Using fallback data</span>}
+          <div className="status-group">
+            {loading && <span className="pill muted">Loading…</span>}
+            {error && (
+              <span className="pill error" role="status">
+                Using fallback data
+              </span>
+            )}
+          </div>
+          <Button
+            type="button"
+            variant="secondary"
+            onClick={() => loadRequests({ silent: true })}
+            loading={refreshing}
+            size="sm"
+          >
+            <HiOutlineRefresh size={18} />
+            <span className="btn-text">Refresh</span>
+          </Button>
         </div>
       </div>
+      {error && (
+        <div className="alert" role="alert">
+          <strong>Could not load live data.</strong> Showing fallback entries instead.
+        </div>
+      )}
       <div className="table-wrapper">
         <table>
           <thead>
@@ -359,6 +419,46 @@ const RequestsTable = () => {
           </thead>
           {content}
         </table>
+      </div>
+      <div className="table-footer">
+        <div className="pagination-meta">
+          <p>
+            Showing <strong>{start}</strong> - <strong>{end}</strong> of <strong>{totalRows}</strong>
+          </p>
+          <label className="page-size">
+            Rows per page
+            <select
+              value={pagination.pageSize}
+              onChange={(event) =>
+                setPagination((prev) => ({ ...prev, pageSize: Number(event.target.value) }))
+              }
+            >
+              {[4, 6, 8, 10].map((size) => (
+                <option key={size} value={size}>
+                  {size}
+                </option>
+              ))}
+            </select>
+          </label>
+        </div>
+        <div className="pagination-controls">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => table.previousPage()}
+            disabled={!table.getCanPreviousPage()}
+          >
+            Previous
+          </Button>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => table.nextPage()}
+            disabled={!table.getCanNextPage()}
+          >
+            Next
+          </Button>
+        </div>
       </div>
       <EditRequestModal
         open={Boolean(editingRow)}

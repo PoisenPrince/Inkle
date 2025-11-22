@@ -1,6 +1,8 @@
 import { FormEvent, useEffect, useMemo, useState } from 'react';
-import { RequestRow } from './RequestsTable';
 import { HiOutlineX } from 'react-icons/hi';
+import Input from '../../components/ui/Input';
+import Button from '../../components/ui/Button';
+import { RequestRow } from './RequestsTable';
 
 interface EditRequestModalProps {
   open: boolean;
@@ -62,25 +64,28 @@ const EditRequestModal = ({
           <div>
             <h3 id="edit-request-title">Edit Customer</h3>
           </div>
-          <button className="ghost icon" aria-label="Close" onClick={onClose}>
+          <Button
+            variant="ghost"
+            className="icon"
+            aria-label="Close"
+            onClick={onClose}
+            size="sm"
+          >
             <HiOutlineX size={18} />
-          </button>
+          </Button>
         </header>
 
         <form className="modal-body" onSubmit={submit}>
-          <div className="field">
-            <label htmlFor="name" className="required">
-              Name
-            </label>
-            <input
-              id="name"
-              name="name"
-              value={name}
-              onChange={(event) => setName(event.target.value)}
-              placeholder="Enter name"
-              disabled={saving}
-            />
-          </div>
+          <Input
+            label="Name"
+            name="name"
+            value={name}
+            onChange={(event) => setName(event.target.value)}
+            placeholder="Enter name"
+            required
+            requiredLabel
+            disabled={saving}
+          />
 
           <div className="field">
             <label htmlFor="country" className="required">
@@ -92,6 +97,7 @@ const EditRequestModal = ({
               value={country}
               onChange={(event) => setCountry(event.target.value)}
               disabled={saving}
+              className="input-control"
             >
               {sortedCountries.map((option) => (
                 <option key={option} value={option}>
@@ -102,12 +108,12 @@ const EditRequestModal = ({
           </div>
 
           <div className="modal-footer">
-            <button type="button" className="ghost" onClick={onClose} disabled={saving}>
+            <Button type="button" variant="ghost" onClick={onClose} disabled={saving}>
               Cancel
-            </button>
-            <button type="submit" className="primary" disabled={saving}>
+            </Button>
+            <Button type="submit" variant="primary" loading={saving}>
               {saving ? 'Saving…' : 'Save'}
-            </button>
+            </Button>
           </div>
         </form>
       </div>
