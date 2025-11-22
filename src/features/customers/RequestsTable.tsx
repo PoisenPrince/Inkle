@@ -1,7 +1,9 @@
 import {
   ColumnDef,
+  ColumnFiltersState,
   flexRender,
   getCoreRowModel,
+  getFilteredRowModel,
   useReactTable
 } from '@tanstack/react-table';
 import { useEffect, useMemo, useState } from 'react';
@@ -77,6 +79,11 @@ const RequestsTable = () => {
   const [rows, setRows] = useState<RequestRow[]>(fallbackRows);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [countries, setCountries] = useState<string[]>(() => [
+    ...new Set(fallbackRows.map((row) => row.country))
+  ].sort());
+  const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
+  const [showCountryFilter, setShowCountryFilter] = useState(false);
 
   useEffect(() => {
     let active = true;
@@ -112,6 +119,39 @@ const RequestsTable = () => {
     };
   }, []);
 
+  useEffect(() => {
+    let active = true;
+
+    const loadCountries = async () => {
+      try {
+        const response = await fetch('https://685013d7e7c42cfd17974a33.mockapi.io/countries');
+        if (!response.ok) {
+          throw new Error('Failed to load countries');
+        }
+
+        const data: { name?: string }[] = await response.json();
+        if (!active) return;
+
+        const names = data
+          .map((country) => country.name)
+          .filter(Boolean) as string[];
+
+        if (names.length) {
+          setCountries([...new Set(names)].sort());
+        }
+      } catch (err) {
+        if (!active) return;
+        setCountries((prev) => [...new Set(prev)].sort());
+      }
+    };
+
+    loadCountries();
+
+    return () => {
+      active = false;
+    };
+  }, []);
+
   const columns = useMemo<ColumnDef<RequestRow>[]>(
     () => [
       {
@@ -132,7 +172,12 @@ const RequestsTable = () => {
       },
       {
         accessorKey: 'country',
-        header: 'Country'
+        header: 'Country',
+        filterFn: (row, columnId, filterValue) => {
+          if (!Array.isArray(filterValue) || filterValue.length === 0) return true;
+          const value = row.getValue<string>(columnId);
+          return filterValue.includes(value);
+        }
       },
       {
         id: 'edit',
@@ -151,8 +196,28 @@ const RequestsTable = () => {
   const table = useReactTable({
     data: rows,
     columns,
-    getCoreRowModel: getCoreRowModel()
+    state: {
+      columnFilters
+    },
+    onColumnFiltersChange: setColumnFilters,
+    getCoreRowModel: getCoreRowModel(),
+    getFilteredRowModel: getFilteredRowModel()
   });
+
+  const countryFilter =
+    (table.getColumn('country')?.getFilterValue() as string[] | undefined) ?? [];
+
+  const toggleCountry = (country: string) => {
+    const next = countryFilter.includes(country)
+      ? countryFilter.filter((item) => item !== country)
+      : [...countryFilter, country];
+
+    table.getColumn('country')?.setFilterValue(next);
+  };
+
+  const clearCountryFilter = () => {
+    table.getColumn('country')?.setFilterValue([]);
+  };
 
   const content = loading ? (
     <tbody>
@@ -193,7 +258,44 @@ const RequestsTable = () => {
           <h2>Requests</h2>
           <p className="table-subtitle">Latest customer tax submissions</p>
         </div>
-        {error && <span className="error-pill">Using fallback data</span>}
+        <div className="toolbar-actions">
+          <div className="filter">
+            <button
+              type="button"
+              className="icon-button"
+              aria-haspopup="listbox"
+              aria-expanded={showCountryFilter}
+              onClick={() => setShowCountryFilter((prev) => !prev)}
+            >
+              Country filter
+            </button>
+            {showCountryFilter && (
+              <div className="popover" role="listbox" aria-label="Filter by country">
+                <div className="popover-title">Country</div>
+                <div className="divider" />
+                <ul className="popover-list">
+                  {countries.map((country) => (
+                    <li key={country}>
+                      <label className="checkbox-row">
+                        <input
+                          type="checkbox"
+                          checked={countryFilter.includes(country)}
+                          onChange={() => toggleCountry(country)}
+                        />
+                        <span>{country}</span>
+                      </label>
+                    </li>
+                  ))}
+                </ul>
+                <div className="divider" />
+                <button className="primary clear-button" onClick={clearCountryFilter}>
+                  Clear selection
+                </button>
+              </div>
+            )}
+          </div>
+          {error && <span className="error-pill">Using fallback data</span>}
+        </div>
       </div>
       <div className="table-wrapper">
         <table>
