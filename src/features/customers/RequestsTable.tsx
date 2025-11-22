@@ -7,7 +7,7 @@ import {
   useReactTable
 } from '@tanstack/react-table';
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { HiOutlinePencil } from 'react-icons/hi';
+import { HiOutlineFunnel, HiOutlinePencil } from 'react-icons/hi';
 import { clsx } from 'clsx';
 import EditRequestModal from './EditRequestModal';
 
@@ -301,11 +301,12 @@ const RequestsTable = () => {
             <button
               type="button"
               className="icon-button"
+              aria-label="Filter by country"
               aria-haspopup="listbox"
               aria-expanded={showCountryFilter}
               onClick={() => setShowCountryFilter((prev) => !prev)}
             >
-              Country filter
+              <HiOutlineFunnel size={18} />
             </button>
             {showCountryFilter && (
               <div className="popover" role="listbox" aria-label="Filter by country">

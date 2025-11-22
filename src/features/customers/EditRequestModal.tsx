@@ -60,8 +60,7 @@ const EditRequestModal = ({
       >
         <header className="modal-header">
           <div>
-            <p className="eyebrow">Edit entry</p>
-            <h3 id="edit-request-title">{row.name}</h3>
+            <h3 id="edit-request-title">Edit Customer</h3>
           </div>
           <button className="ghost icon" aria-label="Close" onClick={onClose}>
             <HiOutlineX size={18} />
@@ -70,7 +69,9 @@ const EditRequestModal = ({
 
         <form className="modal-body" onSubmit={submit}>
           <div className="field">
-            <label htmlFor="name">Name</label>
+            <label htmlFor="name" className="required">
+              Name
+            </label>
             <input
               id="name"
               name="name"
@@ -82,7 +83,9 @@ const EditRequestModal = ({
           </div>
 
           <div className="field">
-            <label htmlFor="country">Country</label>
+            <label htmlFor="country" className="required">
+              Country
+            </label>
             <select
               id="country"
               name="country"
@@ -103,7 +106,7 @@ const EditRequestModal = ({
               Cancel
             </button>
             <button type="submit" className="primary" disabled={saving}>
-              {saving ? 'Saving…' : 'Save changes'}
+              {saving ? 'Saving…' : 'Save'}
             </button>
           </div>
         </form>
