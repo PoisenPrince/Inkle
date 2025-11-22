@@ -10,7 +10,6 @@ function App() {
   return (
     <Layout
       title="Customers"
-      subtitle="Match the Figma design by wiring @tanstack/react-table with UI polish."
       actions={
         <div className="header-actions">
           <Button
@@ -19,7 +18,7 @@ function App() {
             size="sm"
             onClick={() => tableRef.current?.refresh()}
           >
-            <HiOutlineRefresh size={18} />
+            <HiOutlineRefresh size={12} />
             <span className="btn-text">Refresh</span>
           </Button>
           <Button
@@ -28,7 +27,7 @@ function App() {
             size="sm"
             onClick={() => tableRef.current?.openNewCustomer()}
           >
-            <HiOutlinePlus size={18} />
+            <HiOutlinePlus size={15} />
             <span className="btn-text">New customer</span>
           </Button>
         </div>

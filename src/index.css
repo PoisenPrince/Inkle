@@ -6,6 +6,7 @@
   -webkit-font-smoothing: antialiased;
 }
 
+
 * {
   box-sizing: border-box;
 }
@@ -36,17 +37,35 @@ body {
 }
 
 .eyebrow {
+  display: inline-block;
+  padding: 6px 12px;
+  background: #3517bd4d;
+  border-radius: 7.5px;
+  font-size: 30px;
+  font-weight: 750;
+  color: #2e3036;
   text-transform: uppercase;
-  font-size: 12px;
-  letter-spacing: 0.08em;
-  color: #9aa1b5;
-  margin: 0 0 6px;
-  font-weight: 700;
+  letter-spacing: 0.12em;
+  margin: 0 0 8px;
+
+  /* popup animation */
+  opacity: 0;
+  transform: translateY(4px) scale(0.98);
+  animation: eyebrow-pop 240ms ease-out forwards;
 }
+
+@keyframes eyebrow-pop {
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+
 
 h1 {
   margin: 0;
-  font-size: 30px;
+  font-size: 20px;
   color: #1b1e2c;
 }
 
@@ -122,7 +141,7 @@ h1 {
 
 .btn.primary:hover {
   filter: brightness(1.02);
-  box-shadow: 0 20px 40px rgba(95, 61, 253, 0.3);
+  box-shadow: 0 20px 40px #5f3dfd4d;
 }
 
 .btn.secondary {
