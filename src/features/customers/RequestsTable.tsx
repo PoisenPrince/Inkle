@@ -7,12 +7,17 @@ import {
   getPaginationRowModel,
   useReactTable
 } from '@tanstack/react-table';
-import { useCallback, useEffect, useMemo, useState } from 'react';
-import { HiOutlineFunnel, HiOutlinePencil, HiOutlinePlus, HiOutlineRefresh } from 'react-icons/hi';
+import { forwardRef, useCallback, useEffect, useImperativeHandle, useMemo, useState } from 'react';
+import { HiOutlineFunnel, HiOutlinePencil } from 'react-icons/hi';
 import { clsx } from 'clsx';
 import Button from '../../components/ui/Button';
 import EditRequestModal from './EditRequestModal';
 import NewCustomerModal, { CreateRequestPayload } from './NewCustomerModal';
+
+export type RequestsTableHandle = {
+  refresh: () => void;
+  openNewCustomer: () => void;
+};
 
 export type RequestRow = {
   id: string;
@@ -79,10 +84,9 @@ const GenderBadge = ({ gender }: { gender: string }) => {
   );
 };
 
-const RequestsTable = () => {
+const RequestsTable = forwardRef<RequestsTableHandle>((_, ref) => {
   const [rows, setRows] = useState<RequestRow[]>(fallbackRows);
   const [loading, setLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [countries, setCountries] = useState<string[]>(() => [
     ...new Set(fallbackRows.map((row) => row.country))
@@ -97,9 +101,7 @@ const RequestsTable = () => {
   const [pagination, setPagination] = useState({ pageIndex: 0, pageSize: 6 });
 
   const loadRequests = useCallback(async ({ silent }: { silent?: boolean } = { silent: false }) => {
-    if (silent) {
-      setRefreshing(true);
-    } else {
+    if (!silent) {
       setLoading(true);
     }
 
@@ -119,9 +121,7 @@ const RequestsTable = () => {
       setError(message);
       setRows(fallbackRows);
     } finally {
-      if (silent) {
-        setRefreshing(false);
-      } else {
+      if (!silent) {
         setLoading(false);
       }
     }
@@ -323,6 +323,11 @@ const RequestsTable = () => {
     setCreateError(null);
   };
 
+  useImperativeHandle(ref, () => ({
+    refresh: () => loadRequests({ silent: true }),
+    openNewCustomer: openNewModal
+  }));
+
   const visibleRows = table.getRowModel().rows;
   const totalRows = table.getFilteredRowModel().rows.length;
   const start = totalRows === 0 ? 0 : pagination.pageIndex * pagination.pageSize + 1;
@@ -425,20 +430,6 @@ const RequestsTable = () => {
               </span>
             )}
           </div>
-          <Button
-            type="button"
-            variant="secondary"
-            onClick={() => loadRequests({ silent: true })}
-            loading={refreshing}
-            size="sm"
-          >
-            <HiOutlineRefresh size={18} />
-            <span className="btn-text">Refresh</span>
-          </Button>
-          <Button type="button" variant="primary" onClick={openNewModal} size="sm">
-            <HiOutlinePlus size={18} />
-            <span className="btn-text">New customer</span>
-          </Button>
         </div>
       </div>
       {error && (
@@ -528,6 +519,8 @@ const RequestsTable = () => {
       />
     </div>
   );
-};
+});
+
+RequestsTable.displayName = 'RequestsTable';
 
 export default RequestsTable;

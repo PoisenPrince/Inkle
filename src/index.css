@@ -28,6 +28,13 @@ body {
   margin-bottom: 28px;
 }
 
+.app-header-actions,
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
 .eyebrow {
   text-transform: uppercase;
   font-size: 12px;
