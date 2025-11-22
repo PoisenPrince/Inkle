@@ -1,0 +1,277 @@
+:root {
+  font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  color: #1f2432;
+  background-color: #f6f7fb;
+  line-height: 1.5;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+}
+
+.app-shell {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 32px 28px 48px;
+}
+
+.app-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 24px;
+}
+
+.eyebrow {
+  text-transform: uppercase;
+  font-size: 12px;
+  letter-spacing: 0.06em;
+  color: #8d95a5;
+  margin: 0 0 6px;
+  font-weight: 600;
+}
+
+h1 {
+  margin: 0;
+  font-size: 30px;
+}
+
+.subtitle {
+  margin: 6px 0 0;
+  color: #6f7486;
+}
+
+.app-main {
+  display: grid;
+  gap: 16px;
+}
+
+.card {
+  background: #ffffff;
+  border-radius: 16px;
+  border: 1px solid #f0f1f5;
+  box-shadow: 0 8px 30px rgba(17, 24, 39, 0.05);
+}
+
+.table-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 20px 12px;
+  border-bottom: 1px solid #f0f1f5;
+}
+
+.table-toolbar h2 {
+  margin: 0;
+  font-size: 18px;
+}
+
+.table-subtitle {
+  margin: 4px 0 0;
+  color: #6f7486;
+  font-size: 14px;
+}
+
+.error-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 12px;
+  border-radius: 999px;
+  background: #fff4e5;
+  color: #b15c00;
+  font-weight: 600;
+  font-size: 13px;
+  border: 1px solid #ffe3c2;
+}
+
+.table-wrapper {
+  overflow: auto;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  min-width: 640px;
+}
+
+th,
+td {
+  padding: 14px 20px;
+  text-align: left;
+  font-size: 15px;
+}
+
+th {
+  color: #6f7486;
+  font-weight: 600;
+}
+
+td {
+  color: #1f2432;
+  border-bottom: 1px solid #f0f1f5;
+}
+
+tr:last-child td {
+  border-bottom: none;
+}
+
+.entity {
+  color: #4c38c2;
+  font-weight: 600;
+}
+
+.badge {
+  display: inline-block;
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.badge.male {
+  background: #ffe7e7;
+  color: #f05c5c;
+}
+
+.badge.female {
+  background: #e6f1ff;
+  color: #2876f3;
+}
+
+.badge.neutral {
+  background: #f0f1f5;
+  color: #6f7486;
+}
+
+.actions {
+  display: flex;
+  gap: 6px;
+  justify-content: flex-end;
+}
+
+.icon-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  border: 1px solid #eef0f5;
+  background: #ffffff;
+  color: #6f7486;
+  cursor: pointer;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.icon-button:hover {
+  border-color: #d4d7e2;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.08);
+}
+
+.filter {
+  position: relative;
+}
+
+.popover {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  width: 200px;
+  background: #ffffff;
+  border-radius: 12px;
+  border: 1px solid #eef0f5;
+  box-shadow: 0 16px 50px rgba(17, 24, 39, 0.12);
+  padding: 12px 0;
+  z-index: 10;
+}
+
+.popover-title {
+  margin: 0;
+  padding: 0 16px 8px;
+  font-weight: 600;
+}
+
+.divider {
+  height: 1px;
+  background: #eef0f5;
+  margin-bottom: 4px;
+}
+
+.popover-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.checkbox-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 16px;
+  cursor: pointer;
+  font-weight: 500;
+}
+
+.checkbox-row input {
+  accent-color: #4c38c2;
+}
+
+.checkbox-row:hover {
+  background: #f6f7fb;
+}
+
+.check {
+  margin-left: auto;
+  color: #4c38c2;
+}
+
+.center {
+  text-align: center;
+}
+
+.right {
+  text-align: right;
+}
+
+.primary {
+  border: none;
+  background: linear-gradient(95deg, #4b3cff, #7b5dfb);
+  color: white;
+  padding: 12px 20px;
+  border-radius: 10px;
+  font-weight: 600;
+  font-size: 14px;
+  cursor: pointer;
+  box-shadow: 0 12px 30px rgba(75, 60, 255, 0.25);
+}
+
+.primary:hover {
+  filter: brightness(1.02);
+}
+
+.skeleton-row td {
+  padding: 16px 20px;
+}
+
+.skeleton {
+  height: 12px;
+  border-radius: 999px;
+  background: linear-gradient(90deg, #f2f4fa 0%, #e6e9f2 50%, #f2f4fa 100%);
+  background-size: 200% 100%;
+  animation: shimmer 1.2s ease-in-out infinite;
+}
+
+@keyframes shimmer {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
+}
