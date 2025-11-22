@@ -9,6 +9,7 @@ import {
 import { useEffect, useMemo, useState } from 'react';
 import { HiOutlinePencil } from 'react-icons/hi';
 import { clsx } from 'clsx';
+import EditRequestModal from './EditRequestModal';
 
 export type RequestRow = {
   id: string;
@@ -84,6 +85,7 @@ const RequestsTable = () => {
   ].sort());
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
   const [showCountryFilter, setShowCountryFilter] = useState(false);
+  const [editingRow, setEditingRow] = useState<RequestRow | null>(null);
 
   useEffect(() => {
     let active = true;
@@ -182,15 +184,19 @@ const RequestsTable = () => {
       {
         id: 'edit',
         header: '',
-        cell: () => (
-          <button className="icon-button" aria-label="Edit">
+        cell: (info) => (
+          <button
+            className="icon-button"
+            aria-label="Edit"
+            onClick={() => setEditingRow(info.row.original)}
+          >
             <HiOutlinePencil size={18} />
           </button>
         ),
         meta: { align: 'right' }
       }
     ],
-    []
+    [setEditingRow]
   );
 
   const table = useReactTable({
@@ -321,6 +327,12 @@ const RequestsTable = () => {
           {content}
         </table>
       </div>
+      <EditRequestModal
+        open={Boolean(editingRow)}
+        row={editingRow}
+        countries={countries}
+        onClose={() => setEditingRow(null)}
+      />
     </div>
   );
 };

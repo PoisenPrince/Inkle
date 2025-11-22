@@ -269,6 +269,29 @@ tr:last-child td {
   filter: brightness(1.02);
 }
 
+.ghost {
+  border: 1px solid #eef0f5;
+  background: #ffffff;
+  color: #1f2432;
+  padding: 11px 18px;
+  border-radius: 10px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.ghost:hover {
+  border-color: #d4d7e2;
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.06);
+}
+
+.ghost.icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 9px;
+}
+
 .skeleton-row td {
   padding: 16px 20px;
 }
@@ -288,4 +311,84 @@ tr:last-child td {
   100% {
     background-position: -200% 0;
   }
+}
+
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(16, 24, 40, 0.55);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  z-index: 20;
+}
+
+.modal {
+  background: #ffffff;
+  width: 480px;
+  border-radius: 16px;
+  box-shadow: 0 32px 80px rgba(17, 24, 39, 0.2);
+  border: 1px solid #eef0f5;
+  overflow: hidden;
+}
+
+.modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 18px 22px 12px;
+  border-bottom: 1px solid #f0f1f5;
+}
+
+.modal-header h3 {
+  margin: 4px 0 0;
+  font-size: 22px;
+}
+
+.modal-header .icon {
+  min-width: 36px;
+  height: 36px;
+  border-radius: 50%;
+}
+
+.modal-body {
+  padding: 18px 22px 20px;
+  display: grid;
+  gap: 16px;
+}
+
+.field {
+  display: grid;
+  gap: 8px;
+}
+
+.field label {
+  font-weight: 600;
+  color: #1f2432;
+}
+
+.field input,
+.field select {
+  width: 100%;
+  padding: 12px 12px;
+  border-radius: 10px;
+  border: 1px solid #e5e7ee;
+  background: #f9fafc;
+  font-size: 15px;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.field input:focus,
+.field select:focus {
+  outline: none;
+  border-color: #7b5dfb;
+  box-shadow: 0 0 0 3px rgba(123, 93, 251, 0.18);
+}
+
+.modal-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 4px;
 }
