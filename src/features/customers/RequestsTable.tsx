@@ -7,16 +7,24 @@ import {
   getPaginationRowModel,
   useReactTable
 } from '@tanstack/react-table';
-import { useCallback, useEffect, useMemo, useState } from 'react';
-
-import { HiOutlinePencil, HiOutlineRefresh, HiOutlineFilter } from 'react-icons/hi';
+import {
+  forwardRef,
+  useCallback,
+  useEffect,
+  useImperativeHandle,
+  useMemo,
+  useState
+} from 'react';
+import { HiOutlinePencil, HiOutlineFilter } from 'react-icons/hi';
 import clsx from 'clsx';
 import Button from '../../components/ui/Button';
 import EditRequestModal from './EditRequestModal';
+import NewCustomerModal, { CreateRequestPayload } from './NewCustomerModal';
 
-// --------------------------------------------------
-// Types
-// --------------------------------------------------
+export type RequestsTableHandle = {
+  refresh: () => void;
+  openNewCustomer: () => void;
+};
 
 export type RequestRow = {
   id: string;
@@ -38,10 +46,6 @@ type ApiRow = {
   location?: string;
 };
 
-// --------------------------------------------------
-// Helpers
-// --------------------------------------------------
-
 const fallbackRows: RequestRow[] = [
   { id: '1', name: 'Marco Huel', gender: 'Male', requestDate: '2025-01-20', country: 'India' },
   { id: '2', name: 'Alex Morgan', gender: 'Female', requestDate: '2025-01-18', country: 'US' },
@@ -51,6 +55,7 @@ const fallbackRows: RequestRow[] = [
 
 const formatDate = (input: string) => {
   if (!input) return '—';
+
   const parsed = new Date(input);
   if (Number.isNaN(parsed.getTime())) return input;
 
@@ -69,19 +74,12 @@ const normalizeRow = (row: ApiRow): RequestRow => ({
   country: row.country ?? row.location ?? '—'
 });
 
-// --------------------------------------------------
-// Column meta type fix
-// --------------------------------------------------
-
+// ---- Column meta typing for meta.align ----
 declare module '@tanstack/table-core' {
   interface ColumnMeta<TData extends unknown, TValue> {
     align?: 'center' | 'right';
   }
 }
-
-// --------------------------------------------------
-// Gender Badge
-// --------------------------------------------------
 
 const GenderBadge = ({ gender }: { gender: string }) => {
   const isMale = /^male$/i.test(gender);
@@ -100,14 +98,9 @@ const GenderBadge = ({ gender }: { gender: string }) => {
   );
 };
 
-// --------------------------------------------------
-// Component
-// --------------------------------------------------
-
-const RequestsTable = () => {
+const RequestsTable = forwardRef<RequestsTableHandle, unknown>((_, ref) => {
   const [rows, setRows] = useState<RequestRow[]>(fallbackRows);
   const [loading, setLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [countries, setCountries] = useState<string[]>(() =>
     [...new Set(fallbackRows.map((row) => row.country))].sort()
@@ -116,39 +109,44 @@ const RequestsTable = () => {
   const [showCountryFilter, setShowCountryFilter] = useState(false);
   const [editingRow, setEditingRow] = useState<RequestRow | null>(null);
   const [saving, setSaving] = useState(false);
+  const [creating, setCreating] = useState(false);
+  const [createError, setCreateError] = useState<string | null>(null);
+  const [newModalOpen, setNewModalOpen] = useState(false);
   const [pagination, setPagination] = useState({ pageIndex: 0, pageSize: 6 });
 
-  // --------------------------------------------------
-  // Load requests
-  // --------------------------------------------------
+  const loadRequests = useCallback(
+    async ({ silent }: { silent?: boolean } = { silent: false }) => {
+      if (!silent) {
+        setLoading(true);
+      }
 
-  const loadRequests = useCallback(async ({ silent }: { silent?: boolean } = {}) => {
-    silent ? setRefreshing(true) : setLoading(true);
+      try {
+        const response = await fetch('https://685013d7e7c42cfd17974a33.mockapi.io/taxes');
 
-    try {
-      const response = await fetch('https://685013d7e7c42cfd17974a33.mockapi.io/taxes');
+        if (!response.ok) {
+          throw new Error(`Request failed: ${response.status}`);
+        }
 
-      if (!response.ok) throw new Error(`Request failed: ${response.status}`);
-
-      const data: ApiRow[] = await response.json();
-      const normalized = data.map(normalizeRow);
-      setRows(normalized);
-      setError(null);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Unknown error');
-      setRows(fallbackRows);
-    } finally {
-      silent ? setRefreshing(false) : setLoading(false);
-    }
-  }, []);
+        const data: ApiRow[] = await response.json();
+        const normalized = data.map(normalizeRow);
+        setRows(normalized);
+        setError(null);
+      } catch (err) {
+        const message = err instanceof Error ? err.message : 'Unknown error';
+        setError(message);
+        setRows(fallbackRows);
+      } finally {
+        if (!silent) {
+          setLoading(false);
+        }
+      }
+    },
+    []
+  );
 
   useEffect(() => {
     loadRequests();
   }, [loadRequests]);
-
-  // --------------------------------------------------
-  // Load countries
-  // --------------------------------------------------
 
   useEffect(() => {
     let active = true;
@@ -156,63 +154,67 @@ const RequestsTable = () => {
     const loadCountries = async () => {
       try {
         const response = await fetch('https://685013d7e7c42cfd17974a33.mockapi.io/countries');
-
-        if (!response.ok) throw new Error('Failed to load countries');
+        if (!response.ok) {
+          throw new Error('Failed to load countries');
+        }
 
         const data: { name?: string }[] = await response.json();
         if (!active) return;
 
-        const names = data.map((c) => c.name).filter(Boolean) as string[];
-        if (names.length) setCountries([...new Set(names)].sort());
-      } catch {
+        const names = data
+          .map((country) => country.name)
+          .filter(Boolean) as string[];
+
+        if (names.length) {
+          setCountries([...new Set(names)].sort());
+        }
+      } catch (err) {
         if (!active) return;
+        setCountries((prev) => [...new Set(prev)].sort());
       }
     };
 
     loadCountries();
+
     return () => {
       active = false;
     };
   }, []);
 
-  // --------------------------------------------------
-  // Table columns
-  // --------------------------------------------------
+  useEffect(() => {
+    setPagination((prev) => ({ ...prev, pageIndex: 0 }));
+  }, [rows, columnFilters]);
 
-  const columns = useMemo<ColumnDef<RequestRow>[]>(() => {
-    return [
+  const columns = useMemo<ColumnDef<RequestRow>[]>(
+    () => [
       {
-        id: 'name',
         accessorKey: 'name',
         header: 'Entity',
         cell: (info) => <span className="entity">{info.getValue<string>()}</span>
       },
       {
-        id: 'gender',
         accessorKey: 'gender',
         header: 'Gender',
-        meta: { align: 'center' },
-        cell: (info) => <GenderBadge gender={info.getValue<string>()} />
+        cell: (info) => <GenderBadge gender={info.getValue<string>()} />,
+        meta: { align: 'center' }
       },
       {
-        id: 'requestDate',
         accessorKey: 'requestDate',
         header: 'Request date',
         cell: (info) => <span>{formatDate(info.getValue<string>())}</span>
       },
       {
-        id: 'country',
         accessorKey: 'country',
         header: 'Country',
-        filterFn: (row, id, filterValues) => {
-          if (!Array.isArray(filterValues) || filterValues.length === 0) return true;
-          return filterValues.includes(row.getValue(id));
+        filterFn: (row, columnId, filterValue) => {
+          if (!Array.isArray(filterValue) || filterValue.length === 0) return true;
+          const value = row.getValue<string>(columnId);
+          return filterValue.includes(value);
         }
       },
       {
         id: 'edit',
         header: '',
-        meta: { align: 'right' },
         cell: (info) => (
           <Button
             variant="icon"
@@ -222,19 +224,20 @@ const RequestsTable = () => {
           >
             <HiOutlinePencil size={18} />
           </Button>
-        )
+        ),
+        meta: { align: 'right' }
       }
-    ];
-  }, []);
-
-  // --------------------------------------------------
-  // Table Instance
-  // --------------------------------------------------
+    ],
+    []
+  );
 
   const table = useReactTable({
     data: rows,
     columns,
-    state: { columnFilters, pagination },
+    state: {
+      columnFilters,
+      pagination
+    },
     onColumnFiltersChange: setColumnFilters,
     onPaginationChange: setPagination,
     getCoreRowModel: getCoreRowModel(),
@@ -243,11 +246,11 @@ const RequestsTable = () => {
   });
 
   const countryFilter =
-    (table.getColumn('country')?.getFilterValue() as string[]) ?? [];
+    (table.getColumn('country')?.getFilterValue() as string[] | undefined) ?? [];
 
   const toggleCountry = (country: string) => {
     const next = countryFilter.includes(country)
-      ? countryFilter.filter((c) => c !== country)
+      ? countryFilter.filter((item) => item !== country)
       : [...countryFilter, country];
 
     table.getColumn('country')?.setFilterValue(next);
@@ -257,59 +260,147 @@ const RequestsTable = () => {
     table.getColumn('country')?.setFilterValue([]);
   };
 
-  // --------------------------------------------------
-  // Save updated row
-  // --------------------------------------------------
-
   const handleSave = async (
     row: RequestRow,
     updates: { name: string; country: string }
   ) => {
     setSaving(true);
 
-    const payload = { ...row, ...updates };
+    const payload = {
+      ...row,
+      name: updates.name,
+      country: updates.country
+    };
 
     try {
       const response = await fetch(
         `https://685013d7e7c42cfd17974a33.mockapi.io/taxes/${row.id}`,
         {
           method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
+          headers: {
+            'Content-Type': 'application/json'
+          },
           body: JSON.stringify(payload)
         }
       );
 
-      if (!response.ok) throw new Error('Failed to update');
+      if (!response.ok) {
+        throw new Error('Failed to update request');
+      }
 
       setEditingRow(null);
       await loadRequests({ silent: true });
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Error updating');
+      const message = err instanceof Error ? err.message : 'Failed to update request';
+      setError(message);
     } finally {
       setSaving(false);
     }
   };
 
-  // --------------------------------------------------
-  // Render UI
-  // --------------------------------------------------
+  const handleCreate = async (payload: CreateRequestPayload) => {
+    setCreating(true);
+    setCreateError(null);
+
+    try {
+      const parsedDate = new Date(payload.requestDate);
+      const requestDate = Number.isNaN(parsedDate.getTime())
+        ? payload.requestDate
+        : parsedDate.toISOString();
+
+      const response = await fetch(
+        'https://685013d7e7c42cfd17974a33.mockapi.io/taxes',
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({ ...payload, requestDate })
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error('Failed to create request');
+      }
+
+      setNewModalOpen(false);
+      await loadRequests({ silent: true });
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Failed to create request';
+      setCreateError(message);
+    } finally {
+      setCreating(false);
+    }
+  };
+
+  const openNewModal = () => {
+    setCreateError(null);
+    setNewModalOpen(true);
+  };
+
+  const closeNewModal = () => {
+    setNewModalOpen(false);
+    setCreateError(null);
+  };
+
+  useImperativeHandle(ref, () => ({
+    refresh: () => loadRequests({ silent: true }),
+    openNewCustomer: openNewModal
+  }));
 
   const visibleRows = table.getRowModel().rows;
   const totalRows = table.getFilteredRowModel().rows.length;
   const start = totalRows === 0 ? 0 : pagination.pageIndex * pagination.pageSize + 1;
   const end = totalRows === 0 ? 0 : Math.min(start + pagination.pageSize - 1, totalRows);
 
+  const content = loading ? (
+    <tbody aria-busy="true">
+      {[...Array(4)].map((_, index) => (
+        <tr key={index} className="skeleton-row">
+          {columns.map((column) => (
+            <td key={column.id}>
+              <div className="skeleton" />
+            </td>
+          ))}
+        </tr>
+      ))}
+    </tbody>
+  ) : visibleRows.length === 0 ? (
+    <tbody>
+      <tr>
+        <td colSpan={columns.length} className="empty">
+          No requests match this view.
+        </td>
+      </tr>
+    </tbody>
+  ) : (
+    <tbody>
+      {visibleRows.map((row) => (
+        <tr key={row.id}>
+          {row.getVisibleCells().map((cell) => (
+            <td
+              key={cell.id}
+              className={clsx({
+                center: cell.column.columnDef.meta?.align === 'center',
+                right: cell.column.columnDef.meta?.align === 'right'
+              })}
+            >
+              {flexRender(cell.column.columnDef.cell, cell.getContext())}
+            </td>
+          ))}
+        </tr>
+      ))}
+    </tbody>
+  );
+
   return (
     <div className="card">
-      {/* Toolbar */}
       <div className="table-toolbar">
         <div>
           <h2>Requests</h2>
           <p className="table-subtitle">Latest customer tax submissions</p>
         </div>
-
         <div className="toolbar-actions">
-          {/* Filter Button */}
           <div className="filter" data-open={showCountryFilter}>
             <Button
               type="button"
@@ -322,9 +413,12 @@ const RequestsTable = () => {
             >
               <HiOutlineFilter size={18} />
             </Button>
-
             {showCountryFilter && (
-              <div className="popover animate-in" role="listbox">
+              <div
+                className="popover animate-in"
+                role="listbox"
+                aria-label="Filter by country"
+              >
                 <div className="popover-title">Country</div>
                 <div className="divider" />
                 <ul className="popover-list">
@@ -342,40 +436,37 @@ const RequestsTable = () => {
                   ))}
                 </ul>
                 <div className="divider" />
-                <Button variant="primary" className="clear-button" onClick={clearCountryFilter}>
+                <Button
+                  variant="primary"
+                  className="clear-button"
+                  onClick={clearCountryFilter}
+                >
                   Clear selection
                 </Button>
               </div>
             )}
           </div>
-
-          {/* Status */}
           <div className="status-group">
             {loading && <span className="pill muted">Loading…</span>}
-            {error && <span className="pill error">Using fallback data</span>}
+            {error && (
+              <span className="pill error" role="status">
+                Using fallback data
+              </span>
+            )}
           </div>
-
-          {/* Refresh Button */}
-          <Button
-            type="button"
-            variant="secondary"
-            onClick={() => loadRequests({ silent: true })}
-            loading={refreshing}
-            size="sm"
-          >
-            <HiOutlineRefresh size={18} />
-            <span className="btn-text">Refresh</span>
-          </Button>
         </div>
       </div>
-
-      {/* Table */}
+      {error && (
+        <div className="alert" role="alert">
+          <strong>Could not load live data.</strong> Showing fallback entries instead.
+        </div>
+      )}
       <div className="table-wrapper">
         <table>
           <thead>
-            {table.getHeaderGroups().map((hg) => (
-              <tr key={hg.id}>
-                {hg.headers.map((header) => (
+            {table.getHeaderGroups().map((headerGroup) => (
+              <tr key={headerGroup.id}>
+                {headerGroup.headers.map((header) => (
                   <th
                     key={header.id}
                     className={clsx({
@@ -391,66 +482,23 @@ const RequestsTable = () => {
               </tr>
             ))}
           </thead>
-
-          {/* Body */}
-          {loading ? (
-            <tbody>
-              {[...Array(4)].map((_, idx) => (
-                <tr key={idx} className="skeleton-row">
-                  {columns.map((col) => (
-                    <td key={col.id}>
-                      <div className="skeleton" />
-                    </td>
-                  ))}
-                </tr>
-              ))}
-            </tbody>
-          ) : visibleRows.length === 0 ? (
-            <tbody>
-              <tr>
-                <td colSpan={columns.length} className="empty">
-                  No requests match this view.
-                </td>
-              </tr>
-            </tbody>
-          ) : (
-            <tbody>
-              {visibleRows.map((row) => (
-                <tr key={row.id}>
-                  {row.getVisibleCells().map((cell) => (
-                    <td
-                      key={cell.id}
-                      className={clsx({
-                        center: cell.column.columnDef.meta?.align === 'center',
-                        right: cell.column.columnDef.meta?.align === 'right'
-                      })}
-                    >
-                      {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                    </td>
-                  ))}
-                </tr>
-              ))}
-            </tbody>
-          )}
+          {content}
         </table>
       </div>
-
-      {/* Footer */}
       <div className="table-footer">
         <div className="pagination-meta">
           <p>
-            Showing <strong>{start}</strong> – <strong>{end}</strong> of{' '}
+            Showing <strong>{start}</strong> - <strong>{end}</strong> of{' '}
             <strong>{totalRows}</strong>
           </p>
-
           <label className="page-size">
             Rows per page
             <select
               value={pagination.pageSize}
-              onChange={(e) =>
+              onChange={(event) =>
                 setPagination((prev) => ({
                   ...prev,
-                  pageSize: Number(e.target.value)
+                  pageSize: Number(event.target.value)
                 }))
               }
             >
@@ -462,7 +510,6 @@ const RequestsTable = () => {
             </select>
           </label>
         </div>
-
         <div className="pagination-controls">
           <Button
             variant="ghost"
@@ -482,17 +529,26 @@ const RequestsTable = () => {
           </Button>
         </div>
       </div>
-
       <EditRequestModal
-        open={!!editingRow}
+        open={Boolean(editingRow)}
         row={editingRow}
         countries={countries}
         saving={saving}
         onClose={() => setEditingRow(null)}
         onSave={handleSave}
       />
+      <NewCustomerModal
+        open={newModalOpen}
+        countries={countries}
+        saving={creating}
+        error={createError}
+        onClose={closeNewModal}
+        onSave={handleCreate}
+      />
     </div>
   );
-};
+});
+
+RequestsTable.displayName = 'RequestsTable';
 
 export default RequestsTable;
